@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden Gate window — sidebar · list · detail</title>
+<link rel="stylesheet" href="../assets/golden-gate-tokens.css">
+<style>
+  html, body { margin: 0; background: oklch(0.72 0.05 240); }
+  @media (prefers-color-scheme: dark) { html:not([data-appearance="light"]), html:not([data-appearance="light"]) body { background: oklch(0.3 0.04 250); } }
+  html[data-appearance="dark"], html[data-appearance="dark"] body { background: oklch(0.3 0.04 250); }
+
+  /* Appearance switch — sits on the desktop, outside the app window (System Settings: Light / Dark / Auto) */
+  .appearance { position: fixed; top: 16px; right: 16px; z-index: 10; display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: var(--gg-control-radius); font: var(--gg-callout); color: var(--gg-label); }
+  .appearance .seg { display: flex; padding: 2px; gap: 2px; border-radius: var(--gg-control-radius); background: var(--gg-fill); }
+  .appearance button { height: 24px; min-width: 52px; padding: 0 10px; border: 0; border-radius: var(--gg-control-radius); font: var(--gg-callout); color: var(--gg-label); background: transparent; cursor: default; transition: background-color .12s; }
+  .appearance button:hover { background: var(--gg-fill-strong); }
+  .appearance button[aria-checked="true"] { background: var(--gg-content-bg); box-shadow: 0 0.5px 2px rgb(0 0 0 / 0.2); font-weight: 600; }
+  .appearance button:focus-visible { outline: 3px solid var(--gg-focus-ring); outline-offset: 1px; }
+  .appearance { flex-wrap: wrap; max-width: calc(100vw - 32px); box-sizing: border-box; }
+  .appearance .wallpaper-btn { height: 24px; min-width: 0; padding: 0 10px 0 6px; background: var(--gg-fill); }
+  .appearance .wallpaper-btn[aria-expanded="true"] { background: var(--gg-fill-strong); }
+  .appearance .divider { width: 0.5px; align-self: stretch; margin: 4px 4px; background: var(--gg-separator); }
+
+  /* macOS-style switch */
+  .switch { position: relative; width: 32px; min-width: 0 !important; height: 18px !important; padding: 0 !important; border-radius: 999px; background: var(--gg-fill-strong) !important; transition: background-color .15s; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.3); transition: transform .2s var(--gg-press); }
+  .switch[aria-checked="true"] { background: var(--gg-accent) !important; box-shadow: none !important; }
+  .switch[aria-checked="true"]::after { transform: translateX(14px); }
+
+  /* ---------- Simulated desktop: menu bar + Dock (optional) ---------- */
+  .menubar, .dock { display: none; }
+  html.has-desktop .menubar, html.has-desktop .dock { display: flex; }
+  html.has-desktop .gg-desktop { padding: 48px 48px 112px; }
+  html.has-desktop .appearance { top: 36px; }
+  html.has-desktop .gg-window { height: min(640px, calc(100vh - 160px)); }
+
+  .menubar { position: fixed; inset: 0 0 auto; z-index: 20; height: 24px; align-items: center; padding: 0 10px; gap: 2px;
+    font: 400 13px/16px var(--gg-font); color: var(--gg-label);
+    background: color-mix(in oklch, var(--gg-glass-tint) 55%, transparent); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); }
+  .menubar > button { height: 22px; padding: 0 9px; border: 0; border-radius: 5px; font: inherit; color: inherit; background: transparent; cursor: default; white-space: nowrap; }
+  .menubar > button.app-name { font-weight: 700; }
+  .menubar > button.apple { font-size: 15px; padding: 0 10px; }
+  .menubar > button[aria-expanded="true"], .menubar > button:hover { background: var(--gg-fill-strong); }
+  .menubar > button:focus-visible { outline: 2px solid var(--gg-focus-ring); }
+  .menubar .status { margin-left: auto; display: flex; align-items: center; gap: 14px; padding-right: 6px; }
+  .menubar .status svg { width: 16px; height: 16px; display: block; }
+  .menubar .clock { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .menu { position: fixed; top: 26px; z-index: 30; min-width: 220px; padding: 5px; border-radius: 10px; font: var(--gg-body); color: var(--gg-label); }
+  .menu[hidden] { display: none; }
+  .menu [role="menuitem"] { display: flex; align-items: center; gap: 24px; height: 22px; padding: 0 10px; border-radius: 5px; outline: none; cursor: default; white-space: nowrap; }
+  .menu [role="menuitem"] kbd { margin-left: auto; font: inherit; color: var(--gg-label-2); letter-spacing: 0.04em; }
+  .menu [role="menuitem"]:is(:hover, :focus):not([aria-disabled="true"]) { background: var(--gg-accent); color: var(--gg-on-accent); }
+  .menu [role="menuitem"]:is(:hover, :focus):not([aria-disabled="true"]) kbd { color: rgb(255 255 255 / 0.85); }
+  .menu [role="menuitem"][aria-disabled="true"] { color: var(--gg-label-3); }
+  .menu [role="menuitem"][aria-disabled="true"] kbd { color: var(--gg-label-3); }
+  .menu [role="separator"] { height: 0.5px; margin: 5px 10px; background: var(--gg-separator); }
+
+  .dock { position: fixed; left: 50%; bottom: 8px; z-index: 20; transform: translateX(-50%); align-items: flex-end; gap: 6px; padding: 6px 8px; border-radius: 22px; }
+  .dock-item { position: relative; display: grid; justify-items: center; border: 0; padding: 0; background: none; cursor: default; }
+  .dock-item svg.icon { width: 56px; height: 56px; display: block; transition: transform .2s var(--gg-press); transform-origin: bottom center; }
+  .dock-item:hover svg.icon, .dock-item:focus-visible svg.icon { transform: scale(1.18) translateY(-4px); }
+  .dock-item:active svg.icon { filter: brightness(0.8); }
+  .dock-item:focus-visible { outline: none; }
+  .dock-item:focus-visible svg.icon { outline: 3px solid var(--gg-focus-ring); outline-offset: 2px; border-radius: 14px; }
+  .dock-item .tip { position: absolute; bottom: calc(100% + 14px); padding: 3px 10px; border-radius: 6px; font: var(--gg-callout); color: var(--gg-label); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s; }
+  .dock-item:is(:hover, :focus-visible) .tip { opacity: 1; }
+  .dock-item .dot { width: 4px; height: 4px; margin-top: 3px; border-radius: 50%; background: var(--gg-label); }
+  .dock-item .dot.off { visibility: hidden; }
+  .dock-sep { width: 0.5px; align-self: stretch; margin: 4px 4px 11px; background: var(--gg-separator); }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-18px); } }
+  .dock-item.bounce svg.icon { animation: bounce .5s ease-out 2; }
+  @media (prefers-reduced-motion: reduce) {
+    .dock-item:hover svg.icon, .dock-item:focus-visible svg.icon { transform: none; }
+    .dock-item.bounce svg.icon { animation: none; }
+  }
+  @media (max-width: 600px) { .menubar .status .opt, .menubar > button.extra { display: none; } }
+
+  .gg-window { width: min(1080px, 100%); height: min(640px, calc(100vh - 96px)); grid-template-columns: var(--gg-sidebar-w) 300px 1fr; grid-template-rows: 1fr; transition: opacity .2s, transform .2s; }
+  .gg-window.is-hidden { opacity: 0; transform: scale(0.96); pointer-events: none; }
+
+  /* Sidebar: glass, flush to top/bottom/leading edges, traffic lights live in it */
+  .sidebar { grid-row: 1; display: grid; grid-template-rows: var(--gg-bar-h) 1fr; position: relative; z-index: 3; box-shadow: 0.5px 0 0 var(--gg-glass-edge); }
+  .sidebar .gg-traffic { align-self: stretch; align-items: center; padding-left: 18px; }
+
+  .main { grid-column: 2 / 4; display: grid; grid-template-columns: 300px 1fr; grid-template-rows: var(--gg-bar-h) 1fr; min-height: 0; background: var(--gg-content-bg); }
+  .gg-toolbar { grid-column: 1 / 3; position: relative; z-index: 2; }
+  .search { position: relative; width: 200px; }
+  .search svg { position: absolute; left: 10px; top: 8px; width: 14px; height: 14px; color: var(--gg-label-2); }
+  .search .gg-field { width: 100%; }
+
+  .list { overflow: auto; border-right: 0.5px solid var(--gg-separator); min-height: 0; }
+  .list-head { padding: 4px 16px 8px; font: var(--gg-subheadline); color: var(--gg-label-2); }
+  .book { display: grid; gap: 2px; padding: 8px 16px; margin: 0 8px; border-radius: 8px; cursor: default; outline: none; }
+  .book + .book { box-shadow: 0 -0.5px 0 var(--gg-separator); }
+  .book strong { font: var(--gg-headline); }
+  .book span { font: var(--gg-callout); color: var(--gg-label-2); }
+  .book:focus-visible { outline: 3px solid var(--gg-focus-ring); }
+  .book[aria-selected="true"] { background: var(--gg-selection); color: var(--gg-on-accent); box-shadow: none; }
+  .book[aria-selected="true"] span { color: rgb(255 255 255 / 0.85); }
+  .book[aria-selected="true"] + .book { box-shadow: none; }
+  .main.no-detail { grid-template-columns: 1fr; }
+  .main.no-detail .list { border-right: 0; }
+  .empty { padding: 40px 16px; text-align: center; color: var(--gg-label-2); }
+
+  .detail { overflow: auto; padding: 8px 32px 32px; min-height: 0; }
+  .detail h1 { font: var(--gg-title1); letter-spacing: var(--gg-title1-track); font-weight: 700; margin: 12px 0 2px; text-wrap: balance; }
+  .detail .by { font: var(--gg-title3); letter-spacing: var(--gg-title3-track); color: var(--gg-label-2); margin: 0 0 20px; }
+  .props { display: grid; grid-template-columns: 96px 1fr; gap: 10px 12px; align-items: center; margin: 0 0 24px; }
+  .props dt { color: var(--gg-label-2); text-align: right; }
+  .props dd { margin: 0; }
+  .popup { height: var(--gg-control-h); padding: 0 26px 0 10px; border: 0; border-radius: 6px; font: var(--gg-body); color: var(--gg-label); background: var(--gg-fill-strong) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' fill='none' stroke='%23888' stroke-width='1.5'%3E%3Cpath d='M1 4.5 4 1.5l3 3M1 7.5l3 3 3-3'/%3E%3C/svg%3E") no-repeat right 9px center; appearance: none; }
+  .popup:focus-visible { outline: 3px solid var(--gg-focus-ring); }
+  .notes-label { font: var(--gg-headline); margin: 0 0 8px; }
+  textarea { width: 100%; box-sizing: border-box; min-height: 140px; resize: vertical; padding: 10px 12px; border: 0; border-radius: var(--gg-field-radius); font: var(--gg-body); color: var(--gg-label); background: var(--gg-alt-row); box-shadow: inset 0 0 0 0.5px var(--gg-separator); }
+  textarea:focus-visible { outline: 3px solid var(--gg-focus-ring); }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+  @media (max-width: 860px) {
+    .gg-window { grid-template-columns: 1fr; height: auto; }
+    .sidebar { display: none; }
+    .main { grid-column: 1; grid-template-columns: 1fr; }
+    .gg-toolbar { grid-column: 1; }
+    .list { border-right: 0; max-height: 280px; }
+  }
+</style>
+</head>
+<body class="gg-desktop">
+
+<div class="appearance gg-glass" data-od-id="preview-controls">
+  <span id="desktop-label">Desktop</span>
+  <button class="switch" role="switch" aria-checked="false" aria-labelledby="desktop-label" id="desktop-toggle" data-od-id="desktop-toggle"></button>
+  <span class="divider" aria-hidden="true"></span>
+  <button class="wallpaper-btn" data-gg-wallpaper-trigger data-od-id="wallpaper-trigger">Wallpaper</button>
+  <span class="divider" aria-hidden="true"></span>
+  <span id="appearance-label">Appearance</span>
+  <div class="seg" role="radiogroup" aria-labelledby="appearance-label" data-od-id="appearance-toggle">
+    <button role="radio" data-appearance="light" data-od-id="appearance-light">Light</button>
+    <button role="radio" data-appearance="dark" data-od-id="appearance-dark">Dark</button>
+    <button role="radio" data-appearance="auto" data-od-id="appearance-auto">Auto</button>
+  </div>
+</div>
+
+<!-- Simulated menu bar: text-only menus (Golden Gate default), every app command + shortcut -->
+<nav class="menubar" role="menubar" aria-label="Menu bar" id="menubar" data-od-id="menu-bar"></nav>
+<div id="menus"></div>
+
+<!-- Simulated Dock -->
+<nav class="dock gg-glass" aria-label="Dock" data-od-id="dock">
+  <button class="dock-item" id="dock-shelf" aria-label="Shelf" data-od-id="dock-shelf">
+    <span class="tip gg-glass">Shelf</span>
+    <svg class="icon" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="shelf-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="oklch(0.62 0.13 200)"/><stop offset="1" stop-color="oklch(0.42 0.12 235)"/></linearGradient>
+      </defs>
+      <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#shelf-bg)"/>
+      <rect x="15" y="17" width="9" height="31" rx="2.5" fill="oklch(0.97 0.01 90)"/>
+      <rect x="26" y="13" width="9" height="35" rx="2.5" fill="oklch(0.97 0.01 90)" opacity="0.8"/>
+      <rect x="36" y="18" width="9" height="31" rx="2.5" fill="oklch(0.88 0.12 75)" transform="rotate(-12 40.5 33.5)"/>
+      <rect x="12" y="48" width="40" height="4" rx="2" fill="oklch(0.97 0.01 90)" opacity="0.9"/>
+    </svg>
+    <span class="dot" id="shelf-dot"></span>
+  </button>
+  <span class="dock-sep" aria-hidden="true"></span>
+  <button class="dock-item" aria-label="Downloads" data-od-id="dock-downloads">
+    <span class="tip gg-glass">Downloads</span>
+    <svg class="icon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M6 16a5 5 0 0 1 5-5h13l5 5h24a5 5 0 0 1 5 5v28a5 5 0 0 1-5 5H11a5 5 0 0 1-5-5z" fill="oklch(0.72 0.12 245)"/>
+      <path d="M6 23a5 5 0 0 1 5-5h42a5 5 0 0 1 5 5v26a5 5 0 0 1-5 5H11a5 5 0 0 1-5-5z" fill="oklch(0.8 0.1 240)"/>
+      <path d="M32 27v16m-7-7 7 7 7-7" fill="none" stroke="oklch(0.55 0.13 250)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="dot off"></span>
+  </button>
+  <button class="dock-item" aria-label="Trash" data-od-id="dock-trash">
+    <span class="tip gg-glass">Trash</span>
+    <svg class="icon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M14 14h36l-3.5 42a3 3 0 0 1-3 2.8H20.5a3 3 0 0 1-3-2.8z" fill="oklch(0.9 0.005 250 / 0.75)" stroke="oklch(0.6 0.01 250 / 0.6)"/>
+      <path d="M24 22v28M32 22v28M40 22v28" stroke="oklch(0.6 0.01 250 / 0.5)" stroke-width="2" stroke-linecap="round"/>
+      <rect x="11" y="9" width="42" height="6" rx="3" fill="oklch(0.94 0.005 250)" stroke="oklch(0.6 0.01 250 / 0.6)"/>
+    </svg>
+    <span class="dot off"></span>
+  </button>
+</nav>
+
+<div class="gg-window" data-od-id="app-window" role="application" aria-label="Shelf" data-gg-drag-persist="gg-example-window-pos">
+  <!-- Sidebar (glass layer) -->
+  <nav class="sidebar gg-glass" data-od-id="sidebar" aria-label="Library">
+    <div class="gg-traffic" aria-hidden="true" data-gg-drag-region><span class="close"></span><span class="min"></span><span class="zoom"></span></div>
+    <div class="gg-sidebar" role="listbox" aria-label="Collections" id="collections">
+      <div class="gg-section">Library</div>
+      <div class="gg-row" role="option" tabindex="0" data-filter="all" aria-selected="true" data-od-id="sidebar-all">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 2.5h2.5v11H2zM5.5 2.5H8v11H5.5zM9.2 3.2l2.3-.8 3.4 10.4-2.3.8z"/></svg>All Books<span class="gg-count"></span></div>
+      <div class="gg-row" role="option" tabindex="-1" data-filter="Reading" data-od-id="sidebar-reading">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.5 3.2C3.6 2.4 5.9 2.6 7.5 3.8v10c-1.6-1.1-3.9-1.3-6-.6zM8.5 3.8c1.6-1.2 3.9-1.4 6-.6v10c-2.1-.7-4.4-.5-6 .6z"/></svg>Reading<span class="gg-count"></span></div>
+      <div class="gg-row" role="option" tabindex="-1" data-filter="Want to Read" data-od-id="sidebar-want">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 1.5h8v13l-4-3-4 3z"/></svg>Want to Read<span class="gg-count"></span></div>
+      <div class="gg-row" role="option" tabindex="-1" data-filter="Finished" data-od-id="sidebar-finished">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-1 10.2L4 8.3l1.1-1.1L7 9l4-4 1.1 1.1z"/></svg>Finished<span class="gg-count"></span></div>
+      <div class="gg-section">Collections</div>
+      <div class="gg-row" role="option" tabindex="-1" data-filter="19th century" data-od-id="sidebar-19c">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.5 3.5h5l1.5 1.5h6.5v8.5h-13z"/></svg>19th-Century Novels<span class="gg-count"></span></div>
+    </div>
+  </nav>
+
+  <section class="main">
+    <!-- Unified toolbar: title leading, glass groups, search + one prominent action trailing -->
+    <header class="gg-toolbar" data-od-id="toolbar">
+      <div class="gg-group gg-glass">
+        <button class="gg-icon-btn" aria-label="Back" data-od-id="toolbar-back"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3-5 5 5 5"/></svg></button>
+        <button class="gg-icon-btn" aria-label="Forward" disabled style="opacity:.35"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
+      </div>
+      <span class="gg-title" id="view-title" data-od-id="toolbar-title">All Books</span>
+      <div class="gg-group gg-glass">
+        <button class="gg-icon-btn" aria-label="Share" data-od-id="toolbar-share"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5v8.5M5 4.5l3-3 3 3M4.5 7H3.5v7.5h9V7h-1"/></svg></button>
+        <button class="gg-icon-btn" aria-label="Hide Detail" aria-pressed="true" id="inspector-toggle" data-od-id="toolbar-inspector"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M10 2.5v11"/></svg></button>
+      </div>
+      <label class="search gg-group gg-glass" style="padding:0">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></svg>
+        <input class="gg-field" type="search" placeholder="Search" aria-label="Search books" id="search" data-od-id="toolbar-search">
+      </label>
+    </header>
+
+    <div class="list" role="listbox" aria-label="Books" id="book-list" data-od-id="book-list"></div>
+
+    <article class="detail" id="detail" data-od-id="book-detail" aria-live="polite"></article>
+  </section>
+</div>
+
+<script src="../assets/gg-window-drag.js"></script>
+<script src="../assets/gg-wallpaper.js"></script>
+<script>
+  const books = [
+    { t: "Middlemarch", a: "George Eliot", y: 1871, s: "Reading", c: true },
+    { t: "Moby-Dick", a: "Herman Melville", y: 1851, s: "Want to Read", c: true },
+    { t: "Pride and Prejudice", a: "Jane Austen", y: 1813, s: "Finished", c: true },
+    { t: "The Age of Innocence", a: "Edith Wharton", y: 1920, s: "Reading", c: false },
+    { t: "Frankenstein", a: "Mary Shelley", y: 1818, s: "Finished", c: true },
+    { t: "Walden", a: "Henry David Thoreau", y: 1854, s: "Want to Read", c: false },
+    { t: "Jane Eyre", a: "Charlotte Brontë", y: 1847, s: "Finished", c: true },
+    { t: "Dracula", a: "Bram Stoker", y: 1897, s: "Want to Read", c: true }
+  ].map((b, i) => ({ ...b, id: i, notes: "" }));
+
+  const KEY = "gg-example-state";
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+  let filter = saved.filter || "all", selected = saved.selected ?? 0, query = "";
+  (saved.books || []).forEach(sb => Object.assign(books[sb.id] || {}, { s: sb.s, notes: sb.notes }));
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ filter, selected, books: books.map(({ id, s, notes }) => ({ id, s, notes })) })); } catch (e) {} };
+
+  const match = (b, f) => f === "all" || (f === "19th century" ? b.c : b.s === f);
+  const $ = s => document.querySelector(s);
+  const rows = [...document.querySelectorAll("#collections .gg-row")];
+
+  function render() {
+    rows.forEach(r => {
+      const on = r.dataset.filter === filter;
+      r.setAttribute("aria-selected", on); r.tabIndex = on ? 0 : -1;
+      r.querySelector(".gg-count").textContent = books.filter(b => match(b, r.dataset.filter)).length;
+    });
+    $("#view-title").textContent = rows.find(r => r.dataset.filter === filter).textContent.replace(/\d+$/, "").trim();
+
+    const q = query.toLowerCase();
+    const list = books.filter(b => match(b, filter) && (b.t + b.a).toLowerCase().includes(q));
+    if (!list.some(b => b.id === selected)) selected = list[0]?.id ?? null;
+    $("#book-list").innerHTML =
+      `<div class="list-head">${list.length} ${list.length === 1 ? "book" : "books"}</div>` +
+      (list.length ? list.map(b => `<div class="book" role="option" tabindex="${b.id === selected ? 0 : -1}" aria-selected="${b.id === selected}" data-id="${b.id}" data-od-id="book-${b.id}">
+          <strong>${b.t}</strong><span>${b.a} · ${b.y}</span></div>`).join("")
+        : `<div class="empty">No books match “${query}”.</div>`);
+
+    const b = books.find(x => x.id === selected);
+    const showDetail = $("#inspector-toggle").getAttribute("aria-pressed") === "true";
+    $("#detail").hidden = !showDetail;
+    document.querySelector(".main").classList.toggle("no-detail", !showDetail);
+    $("#detail").innerHTML = !b ? `<p class="empty">No Selection</p>` : `
+      <h1>${b.t}</h1><p class="by">${b.a}</p>
+      <dl class="props">
+        <dt>Published</dt><dd>${b.y}</dd>
+        <dt><label for="status">Status</label></dt>
+        <dd><select class="popup" id="status" data-od-id="status-popup">${["Want to Read", "Reading", "Finished"].map(s => `<option${s === b.s ? " selected" : ""}>${s}</option>`).join("")}</select></dd>
+      </dl>
+      <p class="notes-label"><label for="notes">Notes</label></p>
+      <textarea id="notes" placeholder="Add a note…" data-od-id="notes-field">${b.notes}</textarea>
+      <div class="actions">
+        <button class="gg-button" id="revert" data-od-id="notes-revert">Revert</button>
+        <button class="gg-button is-primary" id="save" data-od-id="notes-save">Save Note</button>
+      </div>`;
+    persist();
+  }
+
+  rows.forEach(r => r.addEventListener("click", () => { filter = r.dataset.filter; render(); }));
+  $("#collections").addEventListener("keydown", e => {
+    const i = rows.findIndex(r => r.dataset.filter === filter);
+    const n = e.key === "ArrowDown" ? i + 1 : e.key === "ArrowUp" ? i - 1 : i;
+    if (n !== i && rows[n]) { e.preventDefault(); filter = rows[n].dataset.filter; render(); rows[n].focus(); }
+  });
+  $("#book-list").addEventListener("click", e => { const r = e.target.closest(".book"); if (r) { selected = +r.dataset.id; render(); } });
+  $("#book-list").addEventListener("keydown", e => {
+    const items = [...document.querySelectorAll(".book")], i = items.findIndex(r => +r.dataset.id === selected);
+    const n = e.key === "ArrowDown" ? i + 1 : e.key === "ArrowUp" ? i - 1 : i;
+    if (n !== i && items[n]) { e.preventDefault(); selected = +items[n].dataset.id; render(); document.querySelector(`.book[data-id="${selected}"]`).focus(); }
+  });
+  $("#search").addEventListener("input", e => { query = e.target.value; render(); });
+  $("#inspector-toggle").addEventListener("click", e => {
+    const b = e.currentTarget; b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true");
+    b.setAttribute("aria-label", b.getAttribute("aria-pressed") === "true" ? "Hide Detail" : "Show Detail"); render();
+  });
+  $("#detail").addEventListener("change", e => { if (e.target.id === "status") { books[selected].s = e.target.value; render(); } });
+  $("#detail").addEventListener("click", e => {
+    if (e.target.id === "save") { books[selected].notes = $("#notes").value; persist(); e.target.textContent = "Saved"; setTimeout(() => e.target.isConnected && (e.target.textContent = "Save Note"), 1200); }
+    if (e.target.id === "revert") $("#notes").value = books[selected].notes;
+  });
+  const modes = [...document.querySelectorAll(".appearance .seg button")];
+  function setAppearance(mode) {
+    if (mode === "auto") document.documentElement.removeAttribute("data-appearance");
+    else document.documentElement.setAttribute("data-appearance", mode);
+    modes.forEach(b => { const on = b.dataset.appearance === mode; b.setAttribute("aria-checked", on); b.tabIndex = on ? 0 : -1; });
+    try { localStorage.setItem("gg-example-appearance", mode); } catch (e) {}
+  }
+  modes.forEach((b, i) => {
+    b.addEventListener("click", () => setAppearance(b.dataset.appearance));
+    b.addEventListener("keydown", e => {
+      const n = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : -1;
+      if (modes[n]) { e.preventDefault(); setAppearance(modes[n].dataset.appearance); modes[n].focus(); }
+    });
+  });
+  let savedMode = "auto";
+  try { savedMode = localStorage.getItem("gg-example-appearance") || "auto"; } catch (e) {}
+  setAppearance(savedMode);
+
+  /* ---------- App commands (shared by menus, shortcuts and the Dock) ---------- */
+  const win = $(".gg-window");
+  const setFilter = f => { filter = f; showWindow(); render(); };
+  const toggleDetail = () => $("#inspector-toggle").click();
+  // Hiding / quitting only makes sense when the Dock is there to bring the window back
+  const hasDesktop = () => document.documentElement.classList.contains("has-desktop");
+  function hideWindow() { if (hasDesktop()) win.classList.add("is-hidden"); }
+  function showWindow() { win.classList.remove("is-hidden"); $("#shelf-dot").classList.remove("off"); }
+  function quit() { if (!hasDesktop()) return; hideWindow(); $("#shelf-dot").classList.add("off"); }
+  function exportNotes() {
+    const txt = books.filter(b => b.notes).map(b => `${b.t} — ${b.a}\n${b.notes}\n`).join("\n") || "No notes yet.\n";
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([txt], { type: "text/plain" })), download: "Shelf Notes.txt" });
+    a.click(); URL.revokeObjectURL(a.href);
+  }
+  const edit = cmd => () => { const el = document.activeElement; if (el && el !== document.body) document.execCommand(cmd); };
+
+  // Text-only menus (Golden Gate default). run: null → shown dimmed (not available in this demo).
+  const MENUS = [
+    { label: "", cls: "apple", aria: "Apple", items: [
+      ["About This Mac"], "-", ["System Settings…"], "-", ["Sleep"], ["Restart…"], ["Shut Down…"], "-", ["Lock Screen", "⌃⌘Q"], ["Log Out…", "⇧⌘Q"] ] },
+    { label: "Shelf", cls: "app-name", items: [
+      ["About Shelf"], "-", ["Settings…", "⌘,"], "-", ["Hide Shelf", "⌘H", hideWindow], ["Hide Others", "⌥⌘H"], ["Show All", "", showWindow], "-", ["Quit Shelf", "⌘Q", quit] ] },
+    { label: "File", items: [
+      ["New Book…", "⌘N"], ["New Collection", "⇧⌘N"], "-", ["Close Window", "⌘W", hideWindow], "-", ["Share…"], ["Export Notes…", "⇧⌘E", exportNotes] ] },
+    { label: "Edit", items: [
+      ["Undo", "⌘Z"], ["Redo", "⇧⌘Z"], "-", ["Cut", "⌘X", edit("cut")], ["Copy", "⌘C", edit("copy")], ["Paste", "⌘V"], ["Select All", "⌘A", edit("selectAll")], "-", ["Find", "⌘F", () => { showWindow(); $("#search").focus(); }] ] },
+    { label: "View", items: [
+      ["All Books", "⌘1", () => setFilter("all")], ["Reading", "⌘2", () => setFilter("Reading")], ["Want to Read", "⌘3", () => setFilter("Want to Read")], ["Finished", "⌘4", () => setFilter("Finished")], "-",
+      [() => $("#inspector-toggle").getAttribute("aria-pressed") === "true" ? "Hide Detail" : "Show Detail", "⌥⌘I", toggleDetail], "-",
+      ["Enter Full Screen", "⌃⌘F", () => document.documentElement.requestFullscreen?.().catch(() => {})] ] },
+    { label: "Window", cls: "extra", items: [
+      ["Minimize", "⌘M", hideWindow], ["Zoom"], "-", ["Bring All to Front", "", showWindow] ] },
+    { label: "Help", cls: "extra", items: [ ["Shelf Help"] ] }
+  ];
+
+  const menubar = $("#menubar"), menuHost = $("#menus");
+  let openIdx = -1;
+  const tops = MENUS.map((m, i) => {
+    const b = Object.assign(document.createElement("button"), { textContent: m.label, className: m.cls || "" });
+    b.setAttribute("role", "menuitem"); b.setAttribute("aria-haspopup", "menu"); b.setAttribute("aria-expanded", "false");
+    b.dataset.odId = "menu-" + (m.aria || m.label).toLowerCase().replace(/\s+/g, "-");
+    if (m.aria) b.setAttribute("aria-label", m.aria);
+    b.tabIndex = i === 0 ? 0 : -1;
+    b.addEventListener("click", () => openIdx === i ? closeMenus(true) : openMenu(i));
+    b.addEventListener("mouseenter", () => { if (openIdx !== -1 && openIdx !== i) openMenu(i); });
+    b.addEventListener("keydown", e => {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); const n = (i + (e.key === "ArrowRight" ? 1 : -1) + tops.length) % tops.length; openIdx !== -1 ? openMenu(n) : tops[n].focus(); }
+      if (e.key === "ArrowDown") { e.preventDefault(); openMenu(i, true); }
+    });
+    menubar.append(b);
+    return b;
+  });
+  menubar.insertAdjacentHTML("beforeend", `<div class="status" aria-label="Status menus">
+    <svg class="opt" viewBox="0 0 16 16" fill="currentColor" role="img" aria-label="Wi-Fi"><path d="M8 13.2a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6zM4.6 9.5a4.8 4.8 0 0 1 6.8 0l-1 1a3.4 3.4 0 0 0-4.8 0zM2.3 7.2a8 8 0 0 1 11.4 0l-1 1a6.6 6.6 0 0 0-9.4 0zM0 4.9a11.3 11.3 0 0 1 16 0l-1 1a9.9 9.9 0 0 0-14 0z"/></svg>
+    <svg class="opt" viewBox="0 0 24 16" fill="none" stroke="currentColor" role="img" aria-label="Battery" style="width:24px"><rect x="1" y="3.5" width="19" height="9" rx="2.5" opacity=".5"/><rect x="2.8" y="5.3" width="12" height="5.4" rx="1.2" fill="currentColor" stroke="none"/><path d="M22 6.5v3" stroke-linecap="round" opacity=".5"/></svg>
+    <svg class="opt" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" role="img" aria-label="Control Center"><rect x="1.5" y="2.5" width="13" height="4.5" rx="2.25"/><circle cx="12.2" cy="4.75" r="1.2" fill="currentColor"/><rect x="1.5" y="9" width="13" height="4.5" rx="2.25"/><circle cx="3.8" cy="11.25" r="1.2" fill="currentColor"/></svg>
+    <span class="clock" id="clock"></span></div>`);
+
+  function openMenu(i, focusFirst) {
+    closeMenus();
+    openIdx = i;
+    const m = MENUS[i], b = tops[i], r = b.getBoundingClientRect();
+    const el = document.createElement("div");
+    el.className = "menu gg-glass"; el.setAttribute("role", "menu"); el.setAttribute("aria-label", m.aria || m.label);
+    el.style.left = Math.min(r.left, innerWidth - 230) + "px";
+    m.items.forEach(it => {
+      if (it === "-") return el.insertAdjacentHTML("beforeend", `<div role="separator"></div>`);
+      const [label, key = "", run = null] = it;
+      const item = document.createElement("div");
+      item.setAttribute("role", "menuitem"); item.tabIndex = -1;
+      item.innerHTML = `<span>${typeof label === "function" ? label() : label}</span>${key ? `<kbd>${key}</kbd>` : ""}`;
+      if (!run) item.setAttribute("aria-disabled", "true");
+      item.addEventListener("click", () => { if (!run) return; closeMenus(); run(); });
+      item.addEventListener("mouseenter", () => run && item.focus());
+      el.append(item);
+    });
+    el.addEventListener("keydown", e => {
+      const items = [...el.querySelectorAll('[role="menuitem"]:not([aria-disabled="true"])')], k = items.indexOf(document.activeElement);
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); items[(k + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus(); }
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); document.activeElement.click(); }
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); openMenu((i + (e.key === "ArrowRight" ? 1 : -1) + tops.length) % tops.length, true); }
+    });
+    menuHost.append(el);
+    b.setAttribute("aria-expanded", "true");
+    (focusFirst ? el.querySelector('[role="menuitem"]:not([aria-disabled="true"])') || b : b).focus();
+  }
+  function closeMenus(refocus) {
+    menuHost.innerHTML = "";
+    tops.forEach(t => t.setAttribute("aria-expanded", "false"));
+    if (refocus && openIdx !== -1) tops[openIdx].focus();
+    openIdx = -1;
+  }
+  document.addEventListener("pointerdown", e => { if (openIdx !== -1 && !e.target.closest(".menu, .menubar")) closeMenus(); });
+
+  function tick() {
+    $("#clock").textContent = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date()).replace(/,/g, "");
+  }
+  tick(); setInterval(tick, 15000);
+
+  // Dock: clicking Shelf reopens a hidden/quit window, or bounces if it's already open
+  $("#dock-shelf").addEventListener("click", e => {
+    if (win.classList.contains("is-hidden")) return showWindow();
+    const d = e.currentTarget; d.classList.remove("bounce"); void d.offsetWidth; d.classList.add("bounce");
+  });
+
+  // Desktop simulation switch
+  const desktopToggle = $("#desktop-toggle");
+  function setDesktop(on) {
+    document.documentElement.classList.toggle("has-desktop", on);
+    desktopToggle.setAttribute("aria-checked", on);
+    if (!on) { closeMenus(); showWindow(); }
+    requestAnimationFrame(() => win.ggClampPosition?.()); // keep the dragged window below the menu bar
+    try { localStorage.setItem("gg-example-desktop", on ? "1" : "0"); } catch (e) {}
+  }
+  desktopToggle.addEventListener("click", () => setDesktop(desktopToggle.getAttribute("aria-checked") !== "true"));
+  let savedDesktop = false;
+  try { savedDesktop = localStorage.getItem("gg-example-desktop") === "1"; } catch (e) {}
+  setDesktop(savedDesktop);
+
+  // Keyboard shortcuts — same commands the menus list
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && openIdx !== -1) { e.preventDefault(); return closeMenus(true); }
+    if (!e.metaKey) return;
+    const k = e.key.toLowerCase();
+    const map = { f: () => { showWindow(); $("#search").focus(); }, 1: () => setFilter("all"), 2: () => setFilter("Reading"), 3: () => setFilter("Want to Read"), 4: () => setFilter("Finished"), m: hideWindow };
+    if (e.altKey && (k === "i" || e.code === "KeyI")) { e.preventDefault(); return toggleDetail(); }
+    if (e.shiftKey && (k === "e")) { e.preventDefault(); return exportNotes(); }
+    if (!e.altKey && !e.shiftKey && map[k]) { e.preventDefault(); map[k](); }
+  });
+  render();
+</script>
+</body>
+</html>

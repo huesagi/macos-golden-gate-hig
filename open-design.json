@@ -1,0 +1,146 @@
+{
+  "$schema": "https://open-design.ai/schemas/plugin.v1.json",
+  "specVersion": "1.0.0",
+  "name": "macos-golden-gate-hig",
+  "title": "macOS Golden Gate HIG",
+  "version": "0.1.0",
+  "description": "Design native Mac app screens that follow Apple's Human Interface Guidelines for macOS 27 Golden Gate: Liquid Glass control layer, unified toolbar, flush sidebars, one window radius, 13 pt SF Pro, semantic colours and menu-bar-first commands. Also audits existing Mac UI against the HIG.",
+  "license": "MIT",
+  "author": {
+    "name": "huesagi",
+    "url": "https://github.com/huesagi"
+  },
+  "plugin": {
+    "repo": "https://github.com/huesagi/macos-golden-gate-hig"
+  },
+  "tags": [
+    "macos",
+    "apple-hig",
+    "golden-gate",
+    "liquid-glass",
+    "native-app",
+    "desktop",
+    "design-system"
+  ],
+  "compat": {
+    "agentSkills": [
+      {
+        "path": "./SKILL.md"
+      }
+    ]
+  },
+  "od": {
+    "kind": "scenario",
+    "taskKind": "new-generation",
+    "mode": "design-system",
+    "platform": "desktop",
+    "scenario": "design",
+    "surface": "web",
+    "preview": {
+      "type": "html",
+      "entry": "./examples/index.html"
+    },
+    "useCase": {
+      "query": {
+        "en": "Design the {{screens}} for {{appConcept}} as a native macOS 27 Golden Gate app using the {{windowPattern}} window pattern, in {{appearance}} appearance. Follow Apple's Human Interface Guidelines exactly as documented in references/golden-gate-hig.md, build on assets/golden-gate-tokens.css, and finish with a hig-review.md containing the menu bar map and the conformance checklist."
+      },
+      "exampleOutputs": [
+        {
+          "path": "./examples/index.html",
+          "title": "Sidebar · list · detail window (Golden Gate)"
+        }
+      ]
+    },
+    "inputs": [
+      {
+        "name": "appConcept",
+        "label": "App concept",
+        "type": "string",
+        "required": true,
+        "placeholder": "a reading tracker for a personal book library"
+      },
+      {
+        "name": "screens",
+        "label": "Screens",
+        "type": "string",
+        "required": false,
+        "default": "main window and Settings window",
+        "placeholder": "main window, New Item sheet, Settings"
+      },
+      {
+        "name": "windowPattern",
+        "label": "Window pattern",
+        "type": "select",
+        "options": [
+          "sidebar-list-detail",
+          "sidebar-content",
+          "document-inspector",
+          "utility",
+          "settings"
+        ],
+        "default": "sidebar-list-detail"
+      },
+      {
+        "name": "appearance",
+        "label": "Appearance",
+        "type": "select",
+        "options": [
+          "light and dark",
+          "light",
+          "dark"
+        ],
+        "default": "light and dark"
+      }
+    ],
+    "context": {
+      "skills": [
+        {
+          "path": "./SKILL.md"
+        }
+      ],
+      "assets": [
+        "./references/golden-gate-hig.md",
+        "./assets/golden-gate-tokens.css",
+        "./assets/checklist.md",
+        "./assets/gg-window-drag.js",
+        "./assets/gg-wallpaper.js",
+        "./assets/wallpapers/CREDITS.md"
+      ]
+    },
+    "pipeline": {
+      "stages": [
+        {
+          "id": "discovery",
+          "atoms": [
+            "discovery-question-form"
+          ]
+        },
+        {
+          "id": "plan",
+          "atoms": [
+            "todo-write"
+          ]
+        },
+        {
+          "id": "generate",
+          "atoms": [
+            "file-write",
+            "live-artifact"
+          ]
+        },
+        {
+          "id": "review",
+          "atoms": [
+            "critique-theater"
+          ],
+          "repeat": true,
+          "until": "critique.score>=4 || iterations>=2"
+        }
+      ]
+    },
+    "capabilities": [
+      "prompt:inject",
+      "fs:write"
+    ]
+  }
+}

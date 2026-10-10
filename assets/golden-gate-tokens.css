@@ -1,0 +1,232 @@
+/* macOS Golden Gate (27) — HTML mockup tokens + base components.
+   For web mockups of native Mac apps only. In real AppKit / SwiftUI code use the
+   semantic system colours and fonts named in references/golden-gate-hig.md.
+   Values marked [approx] are visual approximations; Apple does not publish them. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Type: SF Pro through the system font stack (never ship SF font files). */
+  --gg-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, sans-serif;
+  --gg-font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", system-ui, sans-serif;
+  --gg-font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* macOS built-in text styles [HIG]: size / line-height / tracking */
+  --gg-large-title: 400 26px/32px var(--gg-font-display);  --gg-large-title-track: 0.22px;
+  --gg-title1: 400 22px/26px var(--gg-font-display);       --gg-title1-track: -0.26px;
+  --gg-title2: 400 17px/22px var(--gg-font);               --gg-title2-track: -0.43px;
+  --gg-title3: 400 15px/20px var(--gg-font);               --gg-title3-track: -0.23px;
+  --gg-headline: 700 13px/16px var(--gg-font);
+  --gg-body: 400 13px/16px var(--gg-font);                 --gg-body-track: -0.08px;
+  --gg-callout: 400 12px/15px var(--gg-font);
+  --gg-subheadline: 400 11px/14px var(--gg-font);          --gg-small-track: 0.06px;
+  --gg-footnote: 400 10px/13px var(--gg-font);             --gg-tiny-track: 0.12px;
+
+  /* Semantic colours — light. Reference values for macOS system colours. */
+  --gg-label: rgb(0 0 0 / 0.85);
+  --gg-label-2: rgb(0 0 0 / 0.5);
+  --gg-label-3: rgb(0 0 0 / 0.26);
+  --gg-label-4: rgb(0 0 0 / 0.1);
+  --gg-separator: rgb(0 0 0 / 0.1);
+  --gg-window-bg: #ececec;
+  --gg-content-bg: #ffffff;           /* controlBackgroundColor / textBackgroundColor */
+  --gg-alt-row: #f4f5f5;              /* alternatingContentBackgroundColors[1] */
+  --gg-fill: rgb(0 0 0 / 0.05);       /* quiet fills: hover, push-button body */
+  --gg-fill-strong: rgb(0 0 0 / 0.1);
+
+  --gg-blue: #007aff;  --gg-red: #ff3b30;  --gg-orange: #ff9500; --gg-yellow: #ffcc00;
+  --gg-green: #28cd41; --gg-purple: #af52de; --gg-pink: #ff2d55; --gg-gray: #8e8e93;
+
+  /* Accent = user's controlAccentColor. Swap to test all accents. */
+  --gg-accent: var(--gg-blue);
+  --gg-on-accent: #ffffff;
+  --gg-selection: var(--gg-accent);                         /* selectedContentBackgroundColor (key) */
+  --gg-selection-inactive: rgb(0 0 0 / 0.1);                /* unemphasized selection (non-key) */
+  --gg-focus-ring: color-mix(in oklch, var(--gg-accent) 50%, transparent);
+
+  /* Liquid Glass. --gg-glass mirrors the Golden Gate System Settings slider:
+     0 = clear, 1 = fully tinted. Golden Gate default sits low-mid. */
+  --gg-glass: 0.55;
+  --gg-glass-tint: oklch(0.985 0 0);
+  --gg-glass-bg: color-mix(in oklch, var(--gg-glass-tint) calc(55% + var(--gg-glass) * 40%), transparent);
+  --gg-glass-blur: blur(24px) saturate(1.6);
+  --gg-glass-edge: rgb(0 0 0 / 0.14);                      /* Golden Gate: darker edges */
+  --gg-glass-highlight: inset 0 0.5px 0 rgb(255 255 255 / 0.7);
+  --gg-glass-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 4px 16px rgb(0 0 0 / 0.08);
+
+  /* Geometry [approx] */
+  --gg-window-radius: 12px;      /* Golden Gate: one tighter radius for every window */
+  --gg-bar-h: 52px;              /* unified toolbar */
+  --gg-capsule-h: 32px;          /* glass group inside the toolbar */
+  --gg-control-h: 24px;          /* regular push button / field */
+  --gg-control-h-large: 30px;
+  --gg-control-radius: 999px;    /* capsule push buttons, concentric with the bar */
+  --gg-field-radius: 8px;
+  --gg-sidebar-w: 220px;
+  --gg-sidebar-row: 28px;        /* medium sidebar size */
+  --gg-margin: 20px;
+  --gg-space: 8px;
+  --gg-press: cubic-bezier(0.3, 1.4, 0.5, 1);   /* spring-like, iOS-style button motion */
+}
+
+/* Dark appearance. "Auto" follows the OS; data-appearance="light" | "dark" on <html>
+   forces one, mirroring System Settings > Appearance (Light / Dark / Auto). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-appearance="light"]) {
+    --gg-label: rgb(255 255 255 / 0.85);
+    --gg-label-2: rgb(255 255 255 / 0.55);
+    --gg-label-3: rgb(255 255 255 / 0.25);
+    --gg-label-4: rgb(255 255 255 / 0.1);
+    --gg-separator: rgb(255 255 255 / 0.1);
+    --gg-window-bg: #323232;
+    --gg-content-bg: #1e1e1e;
+    --gg-alt-row: #262626;
+    --gg-fill: rgb(255 255 255 / 0.06);
+    --gg-fill-strong: rgb(255 255 255 / 0.12);
+    --gg-blue: #0a84ff;  --gg-red: #ff453a;  --gg-orange: #ff9f0a; --gg-yellow: #ffd60a;
+    --gg-green: #32d74b; --gg-purple: #bf5af2; --gg-pink: #ff375f; --gg-gray: #98989d;
+    --gg-selection-inactive: rgb(255 255 255 / 0.1);
+    --gg-glass-tint: oklch(0.27 0 0);
+    --gg-glass-edge: rgb(255 255 255 / 0.12);
+    --gg-glass-highlight: inset 0 0.5px 0 rgb(255 255 255 / 0.18);
+    --gg-glass-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 20px rgb(0 0 0 / 0.3);
+  }
+}
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+  --gg-label: rgb(255 255 255 / 0.85);
+  --gg-label-2: rgb(255 255 255 / 0.55);
+  --gg-label-3: rgb(255 255 255 / 0.25);
+  --gg-label-4: rgb(255 255 255 / 0.1);
+  --gg-separator: rgb(255 255 255 / 0.1);
+  --gg-window-bg: #323232;
+  --gg-content-bg: #1e1e1e;
+  --gg-alt-row: #262626;
+  --gg-fill: rgb(255 255 255 / 0.06);
+  --gg-fill-strong: rgb(255 255 255 / 0.12);
+  --gg-blue: #0a84ff;  --gg-red: #ff453a;  --gg-orange: #ff9f0a; --gg-yellow: #ffd60a;
+  --gg-green: #32d74b; --gg-purple: #bf5af2; --gg-pink: #ff375f; --gg-gray: #98989d;
+  --gg-selection-inactive: rgb(255 255 255 / 0.1);
+  --gg-glass-tint: oklch(0.27 0 0);
+  --gg-glass-edge: rgb(255 255 255 / 0.12);
+  --gg-glass-highlight: inset 0 0.5px 0 rgb(255 255 255 / 0.18);
+  --gg-glass-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 20px rgb(0 0 0 / 0.3);
+}
+:root[data-appearance="light"] { color-scheme: light; }
+
+/* Accessibility settings the design must survive */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --gg-glass: 1; --gg-glass-blur: none; }
+}
+@media (prefers-contrast: more) {
+  :root { --gg-glass: 1; --gg-glass-edge: var(--gg-label); --gg-separator: var(--gg-label-2); }
+}
+
+/* ---------- Base components ---------- */
+
+.gg-desktop {
+  min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 48px;
+  box-sizing: border-box; font: var(--gg-body); letter-spacing: var(--gg-body-track);
+  color: var(--gg-label); -webkit-font-smoothing: antialiased;
+}
+
+.gg-window {
+  position: relative; display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+  border-radius: var(--gg-window-radius); background: var(--gg-content-bg);
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.25), 0 22px 70px rgb(0 0 0 / 0.28);
+}
+
+/* Traffic lights: 12px, Aqua-like glossy finish in Golden Gate */
+.gg-traffic { display: flex; gap: 8px; padding-inline: 4px 8px; }
+.gg-traffic span {
+  width: 12px; height: 12px; border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.2);
+  background-image: linear-gradient(rgb(255 255 255 / 0.45), rgb(255 255 255 / 0) 55%);
+}
+.gg-traffic .close { background-color: #ff5f57; }
+.gg-traffic .min   { background-color: #febc2e; }
+.gg-traffic .zoom  { background-color: #28c840; }
+.gg-window.is-inactive .gg-traffic span { background-color: var(--gg-fill-strong); }
+
+/* Window dragging (assets/gg-window-drag.js): the frame moves the window, no text selection mid-drag */
+.gg-window.is-dragging { user-select: none; -webkit-user-select: none; }
+.gg-window.is-dragging * { cursor: default !important; }
+
+/* Glass layer */
+.gg-glass {
+  background: var(--gg-glass-bg);
+  -webkit-backdrop-filter: var(--gg-glass-blur); backdrop-filter: var(--gg-glass-blur);
+  box-shadow: var(--gg-glass-highlight), 0 0 0 0.5px var(--gg-glass-edge), var(--gg-glass-shadow);
+}
+
+.gg-toolbar {
+  height: var(--gg-bar-h); display: flex; align-items: center; gap: var(--gg-space);
+  padding-inline: 16px 12px;
+}
+.gg-toolbar .gg-title { font: var(--gg-headline); margin-inline: 4px auto; white-space: nowrap; }
+.gg-group {
+  display: flex; align-items: center; height: var(--gg-capsule-h); padding: 0 4px;
+  border-radius: var(--gg-control-radius);
+}
+.gg-icon-btn {
+  width: 32px; height: 26px; display: grid; place-items: center; border: 0; padding: 0;
+  border-radius: var(--gg-control-radius); background: transparent; color: var(--gg-label);
+  cursor: default; transition: transform 0.25s var(--gg-press), background-color 0.12s;
+}
+.gg-icon-btn svg { width: 16px; height: 16px; }
+.gg-icon-btn:hover { background: var(--gg-fill-strong); }
+.gg-icon-btn:active { transform: scale(0.92); }
+.gg-icon-btn[aria-pressed="true"] { color: var(--gg-accent); }
+
+/* Scroll edge effect: content fades beneath the floating bar instead of a solid fill */
+.gg-scroll-edge {
+  position: sticky; top: 0; z-index: 2; height: 0; overflow: visible; pointer-events: none;
+}
+.gg-scroll-edge::before {
+  content: ""; position: absolute; inset: 0 0 auto; height: calc(var(--gg-bar-h) + 12px);
+  margin-top: calc(-1 * var(--gg-bar-h));
+  background: linear-gradient(var(--gg-content-bg) 55%, transparent);
+}
+
+/* Push buttons */
+.gg-button {
+  height: var(--gg-control-h); padding: 0 12px; border: 0; border-radius: var(--gg-control-radius);
+  font: var(--gg-body); letter-spacing: var(--gg-body-track); color: var(--gg-label);
+  background: var(--gg-fill-strong); cursor: default;
+  transition: transform 0.25s var(--gg-press), background-color 0.12s;
+}
+.gg-button:hover { background: color-mix(in oklch, var(--gg-label) 16%, transparent); }
+.gg-button:active { transform: scale(0.96); }
+.gg-button.is-primary { background: var(--gg-accent); color: var(--gg-on-accent); }
+.gg-button.is-primary:hover { background: color-mix(in oklch, var(--gg-accent) 88%, black); }
+.gg-button.is-destructive { color: var(--gg-red); }
+
+:where(.gg-button, .gg-icon-btn, .gg-field, .gg-row):focus-visible {
+  outline: 3px solid var(--gg-focus-ring); outline-offset: 1px;
+}
+
+.gg-field {
+  height: var(--gg-capsule-h); box-sizing: border-box; border: 0; border-radius: var(--gg-control-radius);
+  padding: 0 12px 0 30px; font: var(--gg-body); color: var(--gg-label); background: transparent;
+}
+.gg-field::placeholder { color: var(--gg-label-2); }
+
+/* Sidebar — flush to the window edges in Golden Gate */
+.gg-sidebar { padding: 8px 10px; overflow: auto; }
+.gg-section { font: 600 11px/14px var(--gg-font); color: var(--gg-label-2); padding: 14px 8px 4px; }
+.gg-row {
+  display: flex; align-items: center; gap: 8px; height: var(--gg-sidebar-row); padding: 0 8px;
+  border-radius: 8px; color: var(--gg-label); cursor: default; outline: none;
+}
+.gg-row svg { width: 16px; height: 16px; color: var(--gg-accent); flex: none; }
+.gg-row .gg-count { margin-left: auto; color: var(--gg-label-2); font-variant-numeric: tabular-nums; }
+.gg-row:hover { background: var(--gg-fill); }
+.gg-row[aria-selected="true"] { background: var(--gg-fill-strong); }
+
+.gg-separator { height: 0.5px; background: var(--gg-separator); border: 0; margin: 0; }
+.gg-secondary { color: var(--gg-label-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gg-button, .gg-icon-btn { transition: background-color 0.12s; }
+  .gg-button:active, .gg-icon-btn:active { transform: none; }
+}
